@@ -108,3 +108,10 @@ venv.bak/
 
 # exclude logs
 logs/*
+
+
+# test misp instance
+test_misp/files/
+test_misp/logs/
+test_misp/server-configs/
+test_misp/ssl/
