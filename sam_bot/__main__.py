@@ -8,6 +8,7 @@ https://github.com/slackapi/python-slack-events-api
 https://github.com/slackapi/python-slackclient/blob/master/tutorial/03-responding-to-slack-events.md
 """
 
+import asyncio
 import logging
 from logging.config import dictConfig
 import os
@@ -289,8 +290,10 @@ async def main() -> None:
     slack_events_adapter.start(port=3000, host="0.0.0.0")
 
 
-if __name__ == "__main__":
-    import asyncio
-
+def run() -> None:
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
+
+
+if __name__ == "__main__":
+    run()

@@ -109,5 +109,3 @@ venv.bak/
 # exclude logs
 logs/*
 
-# blah
-test_misp

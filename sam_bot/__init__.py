@@ -42,9 +42,10 @@ class SamBotConfig(BaseSettings):
     logging: LoggingConfig = Field(default_factory=LoggingConfig.default)
 
     @classmethod
-    def load(cls) -> Self:
-        if Path("config.json").exists():
-            return cls.model_validate_json(Path("config.json").read_text())
+    def load(cls, filename: str = "config.json") -> Self:
+        filepath = Path(filename)
+        if filepath.exists():
+            return cls.model_validate_json(filepath.read_text())
         else:
             logger = logging.getLogger("sam_bot")
             logger.warning("No config file found, using default settings.")
