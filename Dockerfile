@@ -11,8 +11,9 @@ WORKDIR /code
 
 COPY ./ /code/
 
-
+RUN adduser sambot
+RUN chown sambot:sambot /code -R
+USER sambot
 RUN pip install .
 
-
-CMD ["sam-bot"]
+CMD ["/home/sambot/.local/bin/sam-bot"]
