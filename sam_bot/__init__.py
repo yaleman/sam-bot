@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Self
+from typing import Dict, Self
 import logging
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,7 +18,7 @@ class SlackConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="")
 
     @model_validator(mode="before")
-    def validate_slack_config(cls, values: dict) -> dict:
+    def validate_slack_config(cls, values: Dict[str, str]) -> Dict[str, str]:
         if not values.get("SLACK_BOT_OAUTH_TOKEN"):
             raise ValueError("SLACK_BOT_OAUTH_TOKEN is required")
         if not values.get("SLACK_SIGNING_SECRET"):
