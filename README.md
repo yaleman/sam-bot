@@ -33,7 +33,7 @@ Tags that are accepted are
 - TLP:amber
 - TLP:red  
 
-### Example
+## Example Event
 
 ```text
 type: malware
@@ -53,14 +53,15 @@ tag: tlp:RED
 
 ## Installation requirements
 
-## Must use Python3
+If you've got [uv](https://docs.astral.sh/uv/) installed, `uv run sam-bot`
 
-Run the following:
+Or run the following:
 
 ```shell
 python -m venv .venv
 source .venv/bin/activate
 pip install .
+sam-bot
 ```
 
 ### Bot Configuration
