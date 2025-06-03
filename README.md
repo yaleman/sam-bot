@@ -64,6 +64,8 @@ pip install .
 sam-bot
 ```
 
+Show your (redacted) config: `sam-bot --show-config`
+
 ### Bot Configuration
 
 - Add MISP URL and API key to config.json file
