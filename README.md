@@ -66,6 +66,8 @@ sam-bot
 
 Show your (redacted) config: `sam-bot --show-config`
 
+You can also run it in a container from `ghcr.io/irateau/sam-bot:latest`.
+
 ### Bot Configuration
 
 - Add MISP URL and API key to config.json file
