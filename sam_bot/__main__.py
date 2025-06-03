@@ -124,7 +124,7 @@ async def get_username(
     return False
 
 
-async def file_handler(event: Dict[str, Any]) -> None:
+def file_handler(event: Dict[str, Any]) -> None:
     """handles files from slack client"""
     files = event.get("files", list())
 
@@ -155,22 +155,26 @@ async def file_handler(event: Dict[str, Any]) -> None:
                 "%Y-%m-%d %H:%M:%S", time.localtime(float(event["event_ts"]))
             )
             e_title = f"{e_time} - {event_title}"
-            loop = asyncio.get_event_loop()
+            loop = asyncio.new_event_loop()
             userid = event.get("user", "-")
             username = loop.run_until_complete(
-                get_username(userid, slack_client, slack_bot_token)  # type: ignore[name-defined] # noqa: F821
+                get_username(
+                    userid,
+                    slack_client,
+                    CONFIG.slack.SLACK_BOT_OAUTH_TOKEN.get_secret_value(),
+                )
             )
             if username is False:
                 username = "Unknown User"
-            # logger.info(username)
-            # logger.info(e_title)
-            # logger.info(content)
             misp_response = misp_object.misp_send(0, content, e_title, str(username))
-            slack_client.chat_postEphemeral(  # type: ignore[name-defined] # noqa: F821
-                channel=event.get("channel"),
-                text=misp_response,
-                user=event.get("user"),
+            post_result = loop.run_until_complete(
+                slack_client.chat_postEphemeral(
+                    channel=event["channel"],
+                    text=misp_response,
+                    user=event["user"],
+                )
             )
+            logger.debug("Posted ephemeral message to slack: %s", post_result)
 
 
 # untyped decorator leads to mypy warning, so ignore it
