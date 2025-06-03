@@ -1,19 +1,19 @@
 from pathlib import Path
 from typing import Dict, Self
 import logging
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class MISPConfig(BaseSettings):
     url: str
-    key: str
+    key: SecretStr
     ssl: bool = Field(True)
 
 
 class SlackConfig(BaseSettings):
-    SLACK_BOT_OAUTH_TOKEN: str = Field()
-    SLACK_SIGNING_SECRET: str = Field()
+    SLACK_BOT_OAUTH_TOKEN: SecretStr = Field()
+    SLACK_SIGNING_SECRET: SecretStr = Field()
 
     model_config = SettingsConfigDict(env_prefix="")
 
@@ -40,6 +40,8 @@ class SamBotConfig(BaseSettings):
     misp: MISPConfig
     testing: bool = False
     logging: LoggingConfig = Field(default_factory=LoggingConfig.default)
+    port: int = Field(3000, ge=1024, le=65535)
+    host: str = Field("0.0.0.0")
 
     @classmethod
     def load(cls, filename: str = "config.json") -> Self:

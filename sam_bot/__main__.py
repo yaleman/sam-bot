@@ -18,9 +18,11 @@ import traceback
 import threading
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import click
 import requests
 import flask
 from slack_sdk.web.async_client import AsyncWebClient
+# from slack_sdk.socket_mode import SocketModeClient
 
 from slack_sdk.web.async_slack_response import AsyncSlackResponse
 from slackeventsapi import SlackEventAdapter  # type: ignore[import-untyped]
@@ -32,29 +34,10 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 # parse config file
 CONFIG = SamBotConfig.load()
-# with open(config_file, encoding="utf-8") as json_data_file:
-#     try:
-#         data = json.load(json_data_file)
-#     except json.decoder.JSONDecodeError as error:
-#         sys.exit(f"Couldn't parse config.json: {error}")
 
-# if "testing" in data:
-#     TEST_MODE = data.get("testing")
-# else:
-#     TEST_MODE = os.getenv("TEST_MODE", False)
-
-# if CONFIG.logging:
-#     # default to sambot.log in log dir next to script if it's not set
-#     LOGFILE_DEFAULT = CONFIG.output_file or f"{dir_path}/logs/sambot.log"
-#     # default to sambot_error.log in log dir next to script if it's not set
-#     LOGFILE_ERROR = (
-#         CONFIG.logging.output_error_file or f"{dir_path}/logs/sambot_error.log"
-#     )
-# else:
-#     # defaults
-#     LOGFILE_DEFAULT = "./logs/sambot.log"
-#     LOGFILE_ERROR = "./logs/sambot_error.log"
-
+slack_client = AsyncWebClient(
+    token=CONFIG.slack.SLACK_BOT_OAUTH_TOKEN.get_secret_value()
+)
 logging_config: Dict[str, Any] = dict(
     version=1,
     formatters={
@@ -101,7 +84,9 @@ logger = logging.getLogger("SAMbot")
 # connecting to MISP
 try:
     misp_object = MispCustomConnector(
-        misp_url=CONFIG.misp.url, misp_key=CONFIG.misp.key, misp_ssl=CONFIG.misp.ssl
+        misp_url=CONFIG.misp.url,
+        misp_key=CONFIG.misp.key.get_secret_value(),
+        misp_ssl=CONFIG.misp.ssl,
     )
     logger.info(
         "Connected to MISP server successfully at %s (tls=%s)",
@@ -117,7 +102,7 @@ except Exception:
 
 
 slack_events_adapter = SlackEventAdapter(
-    CONFIG.slack.SLACK_SIGNING_SECRET, "/slack/events"
+    CONFIG.slack.SLACK_SIGNING_SECRET.get_secret_value(), endpoint="/slack/events"
 )
 
 
@@ -156,7 +141,9 @@ async def file_handler(event: Dict[str, Any]) -> None:
                 event_title = "#Warroom"
             else:
                 event_title = f"#Warroom {title}"
-            headers = {"Authorization": f"Bearer {CONFIG.slack.SLACK_BOT_OAUTH_TOKEN}"}
+            headers = {
+                "Authorization": f"Bearer {CONFIG.slack.SLACK_BOT_OAUTH_TOKEN.get_secret_value()}"
+            }
 
             response = requests.get(url, headers=headers)
             response.raise_for_status()
@@ -228,8 +215,9 @@ def handle_message(event_data: Dict[str, Any]) -> Tuple[flask.Response, int]:
             logger.error("No channel found in message, can't send response.")
             return_value = flask.Response("No channel found"), 400
             return return_value
-        # can ignore the fact that slack_client "doesn't exist" because it's in the handler
-        slack_client.chat_postMessage(channel=channel, text=response)  # type: ignore[name-defined] # noqa: F821
+        asyncio.new_event_loop().run_until_complete(
+            slack_client.chat_postMessage(channel=channel, text=response)
+        )
         return_value = flask.Response(""), 200
     else:
         logger.info("Message fell through...")
@@ -265,8 +253,10 @@ async def find_channel_id(
     return False
 
 
-async def main() -> None:
-    slack_client = AsyncWebClient(token=CONFIG.slack.SLACK_BOT_OAUTH_TOKEN)
+async def main(show_config: bool) -> None:
+    if show_config:
+        print(CONFIG.model_dump_json(indent=4))
+        return
 
     if CONFIG.testing:
         bot_channel = await find_channel_id(slack_client, "_autobot")
@@ -286,13 +276,20 @@ async def main() -> None:
     conversations_list = await slack_client.conversations_list()
     channels: List[AsyncSlackResponse] = conversations_list.get("channels", list())
     for channel in channels:
-        logger.debug("%s", channel)
-    slack_events_adapter.start(port=3000, host="0.0.0.0")
+        logger.debug("%s - %s", channel["id"], channel["name"])
+    slack_events_adapter.start(port=CONFIG.port, host=CONFIG.host)
 
 
-def run() -> None:
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+@click.command()
+@click.option("--show-config", is_flag=True, help="Show the current configuration.")
+def run(show_config: bool) -> None:
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main(show_config))
+    except Exception as error:
+        logger.error("An error occurred while running the bot: %s", str(error))
+        logger.error(traceback.format_exc())
+        sys.exit(1)
 
 
 if __name__ == "__main__":

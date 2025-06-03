@@ -747,6 +747,7 @@ name = "sam-bot"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "click" },
     { name = "defang" },
     { name = "flask" },
     { name = "gitpython" },
@@ -771,6 +772,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "click", specifier = ">=8.2.1" },
     { name = "defang", specifier = "==0.5.3" },
     { name = "flask", specifier = ">=3.1.1" },
     { name = "gitpython", specifier = "==3.1.44" },
